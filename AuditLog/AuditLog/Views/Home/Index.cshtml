@@ -1,0 +1,98 @@
+﻿@using AuditLog.Models
+@model IEnumerable<SampleDataModel>
+
+
+<div>
+   <h1>Audit log example</h1> <br />
+    <a href="/" class="btn btn-default">Show only live </a>
+    <a href="#" class="btn btn-default" onClick="ShowDeleted()">Show all records </a>
+    <a href="#" class="btn btn-default pull-right" onClick="NewRecord()">New record </a>
+    <br/><br />
+    <table  class='table table-condensed' >
+        <thead></thead>
+                        @foreach (var rec in Model)
+                        {
+                            <tr id="@rec.ID" @(rec.Deleted == false ? String.Empty : "class=alert-danger" )>                    
+
+                            <td><a href="/home/edit/@rec.ID">Edit</a> <a href="#" onClick="DeleteRecord(@rec.ID)">Delete</a> </td>
+                            <td>
+                                @rec.FirstName
+                            </td>
+                            <td>
+                                @rec.lastname
+                            </td>
+                            <td>
+                                @rec.DateOfBirth.ToShortDateString()
+                            </td>
+                            <td><a href="#" onClick="GetAuditHistory(@rec.ID)">Audit</a></td>
+                        </tr>
+                }
+    </table>
+
+    <p></p>
+    
+
+    <!-- Modal HTML -->
+    <div id="myModal" class="modal fade">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title">Audit history</h4>
+                </div>
+                <div class="modal-body">
+                    <div id="audit"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+        function GetAuditHistory(recordID) {
+            $("#audit").html("");
+            var AuditDisplay = "<table class='table table-condensed' cellpadding='5'>"; // should be done with cleaner dom object construction ... but hey, its an article, not production :)
+            $.getJSON( "/home/audit/"+ recordID, function( AuditTrail ) {
+                
+                for(var i = 0; i < AuditTrail.length; i++ )
+                {
+                    AuditDisplay = AuditDisplay + "<tr class='active'><td colspan='2'>Event date: " + AuditTrail[i].DateTimeStamp + "</td>";
+                    AuditDisplay = AuditDisplay + "<td>Action type: " + AuditTrail[i].AuditActionTypeName + "</td></tr>";
+                    AuditDisplay = AuditDisplay + "<tr class='text-warning'><td>Field name</td><td>Before change</td><td>After change</td></tr>";
+                    for(var j = 0; j < AuditTrail[i].Changes.length; j++ )
+                    {
+                        AuditDisplay = AuditDisplay + "<tr>";
+                        AuditDisplay = AuditDisplay + "<td>" + AuditTrail[i].Changes[j].FieldName + "</td>";
+                        AuditDisplay = AuditDisplay + "<td>" + AuditTrail[i].Changes[j].ValueBefore + "</td>";
+                        AuditDisplay = AuditDisplay + "<td>" + AuditTrail[i].Changes[j].ValueAfter + "</td>";
+                        AuditDisplay = AuditDisplay + "</tr>";
+                    }
+                }
+                AuditDisplay = AuditDisplay + "</table>">
+                $("#audit").html(AuditDisplay);
+                $("#myModal").modal('show');
+ 
+               
+            });
+        }
+
+        function DeleteRecord(recordID) {
+            $.get("/home/delete/" + recordID); // should have return on success etc
+            $('#' + recordID).remove();
+        }
+
+        function ShowDeleted() {
+            window.location.assign('/?ShowDeleted=True');
+        }
+            
+        function NewRecord() {
+            window.location.assign('/home/create');
+        }
+
+    </script>
+
+
+</div>
